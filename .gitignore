@@ -33,12 +33,7 @@ playwright-report/
 
 # Environment variables
 .env
-.env*.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env*
-apps/app/.env
+.env.package
 
 # IDE and Editor
 .vscode/

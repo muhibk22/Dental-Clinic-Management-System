@@ -13,8 +13,12 @@
         "format": "prettier --write \"**/*.{ts,tsx,md}\""
     },
     "devDependencies": {
-        "turbo": "latest",
-        "prettier": "latest"
+        "prettier": "latest",
+        "prisma": "^7.1.0",
+        "turbo": "latest"
     },
-    "packageManager": "npm@10.0.0"
+    "packageManager": "npm@10.0.0",
+    "dependencies": {
+        "@prisma/client": "^7.1.0"
+    }
 }

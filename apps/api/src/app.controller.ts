@@ -11,7 +11,12 @@ export class AppController {
   }
 
   @Get('health')
-  getHealth(): import('@dcms/shared').HealthCheckResponse {
+  getHealth() {
     return this.appService.getHealth();
+  }
+
+  @Get('ping')
+  ping() {
+    return 'pong';
   }
 }

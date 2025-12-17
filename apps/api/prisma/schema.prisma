@@ -1,0 +1,232 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  userid        BigInt  @id @default(autoincrement())
+  username      String
+  passwordhash  String
+  role          String  @db.VarChar(50)
+  accesscontrol Json?
+  isdeleted     Boolean @default(false)
+  tokenversion  Int     @default(0)
+
+  // Relations
+  doctor       Doctor?
+  receptionist Receptionist?
+  pharmacist   Pharmacist?
+  assistant    Assistant?
+
+  @@map("users")
+}
+
+model Doctor {
+  doctorid       Int     @id @default(autoincrement())
+  userid         BigInt  @unique
+  name           String
+  specialization String?
+  phone          String?
+  email          String?
+  schedule       Json?
+  isdeleted      Boolean @default(false)
+
+  user         User          @relation(fields: [userid], references: [userid])
+  assistants   Assistant[]
+  appointments Appointment[]
+
+  @@map("doctors")
+}
+
+model Receptionist {
+  receptionistid Int     @id @default(autoincrement())
+  userid         BigInt  @unique
+  name           String
+  phone          String?
+  isdeleted      Boolean @default(false)
+
+  user         User          @relation(fields: [userid], references: [userid])
+  appointments Appointment[]
+
+  @@map("receptionists")
+}
+
+model Pharmacist {
+  pharmacistid Int     @id @default(autoincrement())
+  userid       BigInt  @unique
+  name         String
+  phone        String?
+  isdeleted    Boolean @default(false)
+
+  user User @relation(fields: [userid], references: [userid])
+
+  @@map("pharmacists")
+}
+
+model Assistant {
+  assistantid Int     @id @default(autoincrement())
+  userid      BigInt  @unique
+  doctorid    Int
+  name        String
+  phone       String?
+  isdeleted   Boolean @default(false)
+
+  user   User   @relation(fields: [userid], references: [userid])
+  doctor Doctor @relation(fields: [doctorid], references: [doctorid])
+
+  @@map("assistants")
+}
+
+model Patient {
+  patientid      Int       @id @default(autoincrement())
+  name           String
+  dateofbirth    DateTime  @db.Date
+  gender         String?
+  phone          String?
+  address        String?
+  medicalhistory String?
+  isdeleted      Boolean   @default(false)
+
+  treatments    Treatment[]
+  appointments  Appointment[]
+  attachments   Attachment[]
+  billings      Billing[]
+
+  @@map("patients")
+}
+
+model Treatment {
+  treatmentid Int      @id @default(autoincrement())
+  patientid   Int
+  name        String
+  description String?
+  status      String?
+  startdate   DateTime? @db.Timestamptz
+  enddate     DateTime? @db.Timestamptz
+  isdeleted   Boolean   @default(false)
+
+  patient             Patient              @relation(fields: [patientid], references: [patientid])
+  appointments        Appointment[]
+  completedProcedures CompletedProcedure[]
+
+  @@map("treatments")
+}
+
+model Appointment {
+  appointmentid   Int      @id @default(autoincrement())
+  patientid       Int
+  doctorid        Int
+  receptionistid  Int?
+  treatmentid     Int?
+  appointmenttime DateTime @db.Timestamptz
+  status          String?
+  notes           String?
+  isdeleted       Boolean  @default(false)
+
+  patient      Patient       @relation(fields: [patientid], references: [patientid])
+  doctor       Doctor        @relation(fields: [doctorid], references: [doctorid])
+  receptionist Receptionist? @relation(fields: [receptionistid], references: [receptionistid])
+  treatment    Treatment?    @relation(fields: [treatmentid], references: [treatmentid])
+  
+  completedProcedures CompletedProcedure[]
+  attachments         Attachment[]
+  prescriptions       Prescription[]
+  billings            Billing[]
+
+  @@map("appointments")
+}
+
+model CompletedProcedure {
+  procid        Int     @id @default(autoincrement())
+  appointmentid Int
+  treatmentid   Int?
+  name          String
+  cost          Decimal @db.Decimal(10, 2)
+  notes         String?
+  isdeleted     Boolean @default(false)
+
+  appointment Appointment @relation(fields: [appointmentid], references: [appointmentid])
+  treatment   Treatment?  @relation(fields: [treatmentid], references: [treatmentid])
+
+  @@map("completedprocedures")
+}
+
+model Attachment {
+  attachmentid  Int      @id @default(autoincrement())
+  appointmentid Int?
+  patientid     Int
+  filetype      String?
+  filepath      String?
+  uploadedat    DateTime @default(now()) @db.Timestamptz
+  isdeleted     Boolean  @default(false)
+
+  appointment Appointment? @relation(fields: [appointmentid], references: [appointmentid])
+  patient     Patient      @relation(fields: [patientid], references: [patientid])
+
+  @@map("attachments")
+}
+
+model Prescription {
+  prescriptionid Int      @id @default(autoincrement())
+  appointmentid  Int
+  date           DateTime @db.Timestamptz
+  notes          String?
+  isdeleted      Boolean  @default(false)
+
+  appointment       Appointment        @relation(fields: [appointmentid], references: [appointmentid])
+  prescriptionItems PrescriptionItem[]
+
+  @@map("prescriptions")
+}
+
+model Medicine {
+  medicineid         Int     @id @default(autoincrement())
+  name               String
+  quantity           Int
+  price              Decimal @db.Decimal(10, 2)
+  availabilitystatus Boolean @default(true)
+  isdeleted          Boolean @default(false)
+
+  prescriptionItems PrescriptionItem[]
+
+  @@map("medicines")
+}
+
+model PrescriptionItem {
+  prescriptionitemid Int    @id @default(autoincrement())
+  prescriptionid     Int
+  medicineid         Int
+  quantity           Int
+  dosage             String?
+
+  prescription Prescription @relation(fields: [prescriptionid], references: [prescriptionid])
+  medicine     Medicine     @relation(fields: [medicineid], references: [medicineid])
+
+  @@map("prescriptionitems")
+}
+
+model Billing {
+  billingid     Int      @id @default(autoincrement())
+  appointmentid Int
+  patientid     Int
+  totalamount   Decimal  @db.Decimal(10, 2)
+  type          String   @db.VarChar(10) // CASH | CARD | INSURANCE
+  paymentstatus String?  @db.VarChar(20)
+  date          DateTime @db.Timestamptz
+  isdeleted     Boolean  @default(false)
+
+  appointment Appointment @relation(fields: [appointmentid], references: [appointmentid])
+  patient     Patient     @relation(fields: [patientid], references: [patientid])
+
+  @@map("billing")
+}

@@ -7,26 +7,57 @@ import DataTable from '@/components/admin/DataTable';
 import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { getDoctors, createDoctor, Doctor } from '@/lib/api';
+import { getDoctors, createUser, updateUser, deleteUser, getUsers, Doctor, User } from '@/lib/api';
+import { useUserRole, canEdit } from '@/components/admin/Sidebar';
+
+interface DoctorFormData {
+    username: string;
+    password: string;
+    name: string;
+    specialization: string;
+    email: string;
+    phone: string;
+}
 
 export default function DoctorsPage() {
     const [doctors, setDoctors] = useState<Doctor[]>([]);
+    const [doctorUsers, setDoctorUsers] = useState<Map<number, User>>(new Map());
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
-    const [formData, setFormData] = useState({
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+    const [formData, setFormData] = useState<DoctorFormData>({
+        username: '',
+        password: '',
         name: '',
         specialization: '',
         email: '',
         phone: '',
     });
 
+    const userRole = useUserRole();
+    const canEditDoctors = canEdit(userRole, 'doctors');
+
     const fetchDoctors = async () => {
         setLoading(true);
-        const result = await getDoctors();
-        if (result.data) {
-            setDoctors(result.data);
+        const [doctorsResult, usersResult] = await Promise.all([getDoctors(), getUsers()]);
+
+        if (doctorsResult.data) {
+            setDoctors(doctorsResult.data);
         }
+
+        // Map userid to User for finding associated user accounts
+        if (usersResult.data) {
+            const userMap = new Map<number, User>();
+            usersResult.data.forEach(u => {
+                if (u.role === 'DOCTOR') {
+                    userMap.set(parseInt(u.userid), u);
+                }
+            });
+            setDoctorUsers(userMap);
+        }
+
         setLoading(false);
     };
 
@@ -36,32 +67,113 @@ export default function DoctorsPage() {
 
     const handleAddDoctor = () => {
         setSelectedDoctor(null);
-        setFormData({ name: '', specialization: '', email: '', phone: '' });
+        setFormData({
+            username: '',
+            password: '',
+            name: '',
+            specialization: '',
+            email: '',
+            phone: ''
+        });
+        setError('');
         setModalOpen(true);
     };
 
     const handleEditDoctor = (doctor: Doctor) => {
         setSelectedDoctor(doctor);
+        // Find associated user
+        const user = doctorUsers.get(doctor.userid);
         setFormData({
+            username: user?.username || '',
+            password: '', // Don't show password
             name: doctor.name,
             specialization: doctor.specialization || '',
             email: doctor.email || '',
             phone: doctor.phone || '',
         });
+        setError('');
         setModalOpen(true);
     };
 
-    const handleDeleteDoctor = (doctor: Doctor) => {
+    const handleDeleteDoctor = async (doctor: Doctor) => {
         if (confirm(`Are you sure you want to delete Dr. ${doctor.name}?`)) {
-            // TODO: Call delete API
-            setDoctors(doctors.filter(d => d.doctorid !== doctor.doctorid));
+            // Delete the user account (which cascades to doctor profile)
+            const result = await deleteUser(doctor.userid);
+            if (result.data) {
+                fetchDoctors();
+            }
         }
     };
 
+    // Phone validation
+    const getPhoneError = () => {
+        if (!formData.phone) return '';
+        const digits = formData.phone.replace(/\D/g, '');
+        if (digits.length > 0 && digits.length !== 11) {
+            return `Phone must be 11 digits (currently ${digits.length})`;
+        }
+        return '';
+    };
+
     const handleSubmit = async () => {
-        // TODO: Implement create/update API calls
+        setError('');
+        setSaving(true);
+
+        // Validation
+        if (!formData.name || !formData.specialization || !formData.email) {
+            setError('Name, specialization, and email are required');
+            setSaving(false);
+            return;
+        }
+
+        if (!selectedDoctor && (!formData.username || !formData.password)) {
+            setError('Username and password are required for new doctors');
+            setSaving(false);
+            return;
+        }
+
+        if (formData.phone) {
+            const digits = formData.phone.replace(/\D/g, '');
+            if (digits.length !== 11) {
+                setError('Phone must be exactly 11 digits');
+                setSaving(false);
+                return;
+            }
+        }
+
+        let result;
+        if (selectedDoctor) {
+            // Update existing doctor
+            result = await updateUser(selectedDoctor.userid, {
+                username: formData.username || undefined,
+                password: formData.password || undefined,
+                name: formData.name,
+                phone: formData.phone || undefined,
+                specialization: formData.specialization,
+                email: formData.email,
+            });
+        } else {
+            // Create new doctor (via Users API with role fixed as DOCTOR)
+            result = await createUser({
+                username: formData.username,
+                password: formData.password,
+                role: 'DOCTOR', // Fixed role
+                name: formData.name,
+                phone: formData.phone || undefined,
+                specialization: formData.specialization,
+                email: formData.email,
+            });
+        }
+
+        if (result.error) {
+            setError(result.error);
+            setSaving(false);
+            return;
+        }
+
         setModalOpen(false);
         fetchDoctors();
+        setSaving(false);
     };
 
     const columns = [
@@ -107,7 +219,8 @@ export default function DoctorsPage() {
                 <Badge variant="info">{doctor.specialization || 'General'}</Badge>
             ),
         },
-        {
+        // Only show actions if user can edit
+        ...(canEditDoctors ? [{
             key: 'actions',
             label: 'Actions',
             className: 'text-right',
@@ -127,17 +240,19 @@ export default function DoctorsPage() {
                     </button>
                 </div>
             ),
-        },
+        }] : []),
     ];
 
     return (
         <DashboardLayout
             title="Doctors"
-            subtitle="Manage doctor profiles and specializations"
+            subtitle={canEditDoctors ? "Manage doctor profiles and specializations" : "View doctor profiles (Read-only)"}
             actions={
-                <Button onClick={handleAddDoctor} className="flex items-center gap-2">
-                    <Plus size={18} /> Add Doctor
-                </Button>
+                canEditDoctors ? (
+                    <Button onClick={handleAddDoctor} className="flex items-center gap-2">
+                        <Plus size={18} /> Add Doctor
+                    </Button>
+                ) : null
             }
         >
             <DataTable
@@ -159,15 +274,60 @@ export default function DoctorsPage() {
                         <Button variant="outline" onClick={() => setModalOpen(false)}>
                             Cancel
                         </Button>
-                        <Button onClick={handleSubmit}>
-                            {selectedDoctor ? 'Save Changes' : 'Add Doctor'}
+                        <Button onClick={handleSubmit} disabled={saving}>
+                            {saving ? 'Saving...' : selectedDoctor ? 'Save Changes' : 'Add Doctor'}
                         </Button>
                     </>
                 }
             >
+                {error && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+                        {error}
+                    </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Account credentials - only show for new doctors */}
+                    {!selectedDoctor && (
+                        <>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Username *</label>
+                                <input
+                                    type="text"
+                                    value={formData.username}
+                                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                                    placeholder="drsmith"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Password *</label>
+                                <input
+                                    type="password"
+                                    value={formData.password}
+                                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                                    placeholder="••••••••"
+                                />
+                            </div>
+                        </>
+                    )}
+
+                    {/* For editing, show password change option */}
+                    {selectedDoctor && (
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-slate-700 mb-2">New Password (leave blank to keep current)</label>
+                            <input
+                                type="password"
+                                value={formData.password}
+                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                                placeholder="••••••••"
+                            />
+                        </div>
+                    )}
+
                     <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Full Name</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Full Name *</label>
                         <input
                             type="text"
                             value={formData.name}
@@ -177,7 +337,7 @@ export default function DoctorsPage() {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Specialization</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Specialization *</label>
                         <select
                             value={formData.specialization}
                             onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
@@ -194,7 +354,7 @@ export default function DoctorsPage() {
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Email *</label>
                         <input
                             type="email"
                             value={formData.email}
@@ -203,15 +363,20 @@ export default function DoctorsPage() {
                             placeholder="doctor@clinic.com"
                         />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Phone</label>
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Phone (11 digits)</label>
                         <input
                             type="tel"
                             value={formData.phone}
                             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                            placeholder="+92-300-1234567"
+                            className={`w-full px-4 py-2.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-all ${getPhoneError() ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-teal-500'
+                                }`}
+                            placeholder="03001234567"
+                            maxLength={15}
                         />
+                        {getPhoneError() && (
+                            <p className="text-red-500 text-xs mt-1">{getPhoneError()}</p>
+                        )}
                     </div>
                 </div>
             </Modal>

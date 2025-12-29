@@ -22,7 +22,10 @@ export class DoctorsService {
 
   async findAll() {
     return this.prisma.doctor.findMany({
-      where: { isdeleted: false },
+      where: {
+        isdeleted: false,
+        user: { isdeleted: false }  // Also check if user account is deleted
+      },
       include: { user: true },
     });
   }

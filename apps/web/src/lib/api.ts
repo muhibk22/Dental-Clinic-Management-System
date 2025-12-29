@@ -306,6 +306,19 @@ export async function createPrescription(data: CreatePrescriptionDto): Promise<A
     });
 }
 
+export async function updatePrescription(id: number, data: Partial<CreatePrescriptionDto>): Promise<ApiResponse<Prescription>> {
+    return apiRequest<Prescription>(`/prescriptions/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+    });
+}
+
+export async function deletePrescription(id: number): Promise<ApiResponse<{ message: string }>> {
+    return apiRequest<{ message: string }>(`/prescriptions/${id}`, {
+        method: 'DELETE',
+    });
+}
+
 // ============ Billing API ============
 
 export interface Billing {
@@ -339,6 +352,19 @@ export async function createBilling(data: CreateBillingDto): Promise<ApiResponse
     return apiRequest<Billing>('/billing', {
         method: 'POST',
         body: JSON.stringify(data),
+    });
+}
+
+export async function updateBilling(id: number, data: Partial<CreateBillingDto>): Promise<ApiResponse<Billing>> {
+    return apiRequest<Billing>(`/billing/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+    });
+}
+
+export async function deleteBilling(id: number): Promise<ApiResponse<{ message: string }>> {
+    return apiRequest<{ message: string }>(`/billing/${id}`, {
+        method: 'DELETE',
     });
 }
 

@@ -17,7 +17,7 @@ export class BillingController {
   @ApiOperation({ summary: 'Create a new bill' })
   @ApiResponse({ status: 201, description: 'The bill has been successfully created.' })
   @Post()
-  @Roles('ADMIN', 'RECEPTIONIST')
+  @Roles('ADMIN', 'DOCTOR', 'RECEPTIONIST')
   create(@Body() createBillingDto: CreateBillingDto) {
     return this.billingService.create(createBillingDto);
   }
@@ -25,7 +25,7 @@ export class BillingController {
   @ApiOperation({ summary: 'Get all bills' })
   @ApiResponse({ status: 200, description: 'Return all bills.' })
   @Get()
-  @Roles('ADMIN', 'RECEPTIONIST')
+  @Roles('ADMIN', 'DOCTOR', 'RECEPTIONIST')
   findAll() {
     return this.billingService.findAll();
   }
@@ -33,7 +33,7 @@ export class BillingController {
   @ApiOperation({ summary: 'Get a bill by ID' })
   @ApiResponse({ status: 200, description: 'Return the bill.' })
   @Get(':id')
-  @Roles('ADMIN', 'RECEPTIONIST')
+  @Roles('ADMIN', 'DOCTOR', 'RECEPTIONIST')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.billingService.findOne(id);
   }
@@ -41,7 +41,7 @@ export class BillingController {
   @ApiOperation({ summary: 'Update a bill' })
   @ApiResponse({ status: 200, description: 'The bill has been successfully updated.' })
   @Patch(':id')
-  @Roles('ADMIN', 'RECEPTIONIST')
+  @Roles('ADMIN', 'DOCTOR', 'RECEPTIONIST')
   update(@Param('id', ParseIntPipe) id: number, @Body() updateBillingDto: UpdateBillingDto) {
     return this.billingService.update(id, updateBillingDto);
   }

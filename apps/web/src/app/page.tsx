@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import Cookies from 'js-cookie';
 import { login as apiLogin, getToken } from '@/lib/api';
 import { getDashboardPath } from '@/lib/auth';
 
@@ -34,6 +35,9 @@ export default function LoginPage() {
     }
 
     if (result.data) {
+      // Save user info to cookie for role-based access
+      Cookies.set('dcms_user', JSON.stringify(result.data.user), { expires: 7 });
+
       const role = result.data.user.role;
       const dashboardPath = getDashboardPath(role);
       router.push(dashboardPath);

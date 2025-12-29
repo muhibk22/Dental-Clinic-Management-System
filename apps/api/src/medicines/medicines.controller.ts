@@ -17,7 +17,7 @@ export class MedicinesController {
   @ApiOperation({ summary: 'Add a new medicine' })
   @ApiResponse({ status: 201, description: 'The medicine has been successfully created.' })
   @Post()
-  @Roles('PHARMACIST', 'DOCTOR')
+  @Roles('ADMIN', 'PHARMACIST')
   create(@Body() createMedicineDto: CreateMedicineDto) {
     return this.medicinesService.create(createMedicineDto);
   }
@@ -25,7 +25,7 @@ export class MedicinesController {
   @ApiOperation({ summary: 'Get all medicines' })
   @ApiResponse({ status: 200, description: 'Return all medicines.' })
   @Get()
-  @Roles('PHARMACIST', 'DOCTOR')
+  @Roles('ADMIN', 'PHARMACIST', 'DOCTOR')
   findAll() {
     return this.medicinesService.findAll();
   }
@@ -33,7 +33,7 @@ export class MedicinesController {
   @ApiOperation({ summary: 'Get a medicine by ID' })
   @ApiResponse({ status: 200, description: 'Return the medicine.' })
   @Get(':id')
-  @Roles('PHARMACIST', 'DOCTOR')
+  @Roles('ADMIN', 'PHARMACIST', 'DOCTOR')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.medicinesService.findOne(id);
   }
@@ -41,7 +41,7 @@ export class MedicinesController {
   @ApiOperation({ summary: 'Update a medicine' })
   @ApiResponse({ status: 200, description: 'The medicine has been successfully updated.' })
   @Patch(':id')
-  @Roles('PHARMACIST')
+  @Roles('ADMIN', 'PHARMACIST')
   update(@Param('id', ParseIntPipe) id: number, @Body() updateMedicineDto: UpdateMedicineDto) {
     return this.medicinesService.update(id, updateMedicineDto);
   }

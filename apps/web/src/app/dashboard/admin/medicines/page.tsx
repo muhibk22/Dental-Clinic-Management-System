@@ -8,6 +8,7 @@ import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { getMedicines, createMedicine, Medicine } from '@/lib/api';
+import { useUserRole, canEdit } from '@/components/admin/Sidebar';
 
 export default function MedicinesPage() {
     const [medicines, setMedicines] = useState<Medicine[]>([]);
@@ -18,6 +19,9 @@ export default function MedicinesPage() {
         quantity: '',
         price: '',
     });
+
+    const userRole = useUserRole();
+    const canEditMedicines = canEdit(userRole, 'medicines');
 
     const fetchData = async () => {
         setLoading(true);
@@ -103,7 +107,8 @@ export default function MedicinesPage() {
                 </Badge>
             ),
         },
-        {
+        // Only show actions column if user can edit
+        ...(canEditMedicines ? [{
             key: 'actions',
             label: 'Actions',
             className: 'text-right',
@@ -117,17 +122,19 @@ export default function MedicinesPage() {
                     </button>
                 </div>
             ),
-        },
+        }] : []),
     ];
 
     return (
         <DashboardLayout
             title="Medicine Inventory"
-            subtitle="Manage pharmacy stock and pricing"
+            subtitle={canEditMedicines ? "Manage pharmacy stock and pricing" : "View pharmacy stock (Read-only)"}
             actions={
-                <Button onClick={handleAddMedicine} className="flex items-center gap-2">
-                    <Plus size={18} /> Add Medicine
-                </Button>
+                canEditMedicines ? (
+                    <Button onClick={handleAddMedicine} className="flex items-center gap-2">
+                        <Plus size={18} /> Add Medicine
+                    </Button>
+                ) : null
             }
         >
             {/* Quick Stats */}

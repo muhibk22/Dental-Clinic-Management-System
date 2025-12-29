@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Body, Param, UseGuards, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Patch, Delete, ParseIntPipe } from '@nestjs/common';
 import { AppointmentsService } from './appointments.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
+import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -35,5 +36,21 @@ export class AppointmentsController {
   @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.appointmentsService.findOne(id);
+  }
+
+  @ApiOperation({ summary: 'Update an appointment' })
+  @ApiResponse({ status: 200, description: 'The appointment has been successfully updated.' })
+  @Patch(':id')
+  @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR')
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateAppointmentDto: UpdateAppointmentDto) {
+    return this.appointmentsService.update(id, updateAppointmentDto);
+  }
+
+  @ApiOperation({ summary: 'Cancel an appointment (soft delete)' })
+  @ApiResponse({ status: 200, description: 'The appointment has been successfully cancelled.' })
+  @Delete(':id')
+  @Roles('ADMIN', 'RECEPTIONIST')
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.appointmentsService.remove(id);
   }
 }

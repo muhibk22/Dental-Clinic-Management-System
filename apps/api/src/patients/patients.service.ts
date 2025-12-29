@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePatientDto } from './dto/create-patient.dto';
+import { UpdatePatientDto } from './dto/update-patient.dto';
 
 @Injectable()
 export class PatientsService {
@@ -26,8 +27,40 @@ export class PatientsService {
     }
 
     async findOne(id: number) {
-        return this.prisma.patient.findFirst({
+        const patient = await this.prisma.patient.findFirst({
             where: { patientid: id, isdeleted: false },
+        });
+        if (!patient) {
+            throw new NotFoundException(`Patient #${id} not found`);
+        }
+        return patient;
+    }
+
+    async update(id: number, updatePatientDto: UpdatePatientDto) {
+        // Check if patient exists
+        await this.findOne(id);
+
+        return this.prisma.patient.update({
+            where: { patientid: id },
+            data: {
+                ...(updatePatientDto.name && { name: updatePatientDto.name }),
+                ...(updatePatientDto.dateofbirth && { dateofbirth: new Date(updatePatientDto.dateofbirth) }),
+                ...(updatePatientDto.gender && { gender: updatePatientDto.gender }),
+                ...(updatePatientDto.phone && { phone: updatePatientDto.phone }),
+                ...(updatePatientDto.address && { address: updatePatientDto.address }),
+                ...(updatePatientDto.medicalhistory && { medicalhistory: updatePatientDto.medicalhistory }),
+            },
+        });
+    }
+
+    async remove(id: number) {
+        // Check if patient exists
+        await this.findOne(id);
+
+        // Soft delete
+        return this.prisma.patient.update({
+            where: { patientid: id },
+            data: { isdeleted: true },
         });
     }
 }

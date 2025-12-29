@@ -28,6 +28,11 @@ export class AuthService {
         };
         return {
             access_token: this.jwtService.sign(payload),
+            user: {
+                userid: user.userid.toString(),
+                username: user.username,
+                role: user.role,
+            }
         };
     }
 }

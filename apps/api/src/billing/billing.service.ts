@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBillingDto } from './dto/create-billing.dto';
+import { UpdateBillingDto } from './dto/update-billing.dto';
 
 @Injectable()
 export class BillingService {
@@ -34,12 +35,39 @@ export class BillingService {
   }
 
   async findOne(id: number) {
-    return this.prisma.billing.findFirst({
+    const billing = await this.prisma.billing.findFirst({
       where: { billingid: id, isdeleted: false },
       include: {
         patient: true,
         appointment: true,
       }
+    });
+    if (!billing) {
+      throw new NotFoundException(`Billing #${id} not found`);
+    }
+    return billing;
+  }
+
+  async update(id: number, updateBillingDto: UpdateBillingDto) {
+    await this.findOne(id);
+    return this.prisma.billing.update({
+      where: { billingid: id },
+      data: {
+        ...(updateBillingDto.paymentstatus && { paymentstatus: updateBillingDto.paymentstatus }),
+        ...(updateBillingDto.totalamount !== undefined && { totalamount: updateBillingDto.totalamount }),
+      },
+      include: {
+        patient: true,
+        appointment: true,
+      }
+    });
+  }
+
+  async remove(id: number) {
+    await this.findOne(id);
+    return this.prisma.billing.update({
+      where: { billingid: id },
+      data: { isdeleted: true },
     });
   }
 }

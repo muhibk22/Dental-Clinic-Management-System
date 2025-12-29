@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Body, Param, UseGuards, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Patch, Delete, ParseIntPipe } from '@nestjs/common';
 import { PrescriptionsService } from './prescriptions.service';
 import { CreatePrescriptionDto } from './dto/create-prescription.dto';
+import { UpdatePrescriptionDto } from './dto/update-prescription.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -35,5 +36,21 @@ export class PrescriptionsController {
   @Roles('DOCTOR', 'PHARMACIST')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.prescriptionsService.findOne(id);
+  }
+
+  @ApiOperation({ summary: 'Update a prescription' })
+  @ApiResponse({ status: 200, description: 'The prescription has been successfully updated.' })
+  @Patch(':id')
+  @Roles('DOCTOR')
+  update(@Param('id', ParseIntPipe) id: number, @Body() updatePrescriptionDto: UpdatePrescriptionDto) {
+    return this.prescriptionsService.update(id, updatePrescriptionDto);
+  }
+
+  @ApiOperation({ summary: 'Delete a prescription (soft delete)' })
+  @ApiResponse({ status: 200, description: 'The prescription has been successfully deleted.' })
+  @Delete(':id')
+  @Roles('DOCTOR', 'ADMIN')
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.prescriptionsService.remove(id);
   }
 }

@@ -1,8 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// Prisma schema synced with existing dental-clinic database
 
 generator client {
   provider = "prisma-client-js"
@@ -15,12 +11,12 @@ datasource db {
 
 model User {
   userid        BigInt  @id @default(autoincrement())
-  username      String
+  username      String  @unique
   passwordhash  String
   role          String  @db.VarChar(50)
-  accesscontrol Json?
+  accesscontrol Json?   @default("[]")
   isdeleted     Boolean @default(false)
-  tokenversion  Int     @default(0)
+  tokenversion  Int     @default(1)
 
   // Relations
   doctor       Doctor?
@@ -32,16 +28,16 @@ model User {
 }
 
 model Doctor {
-  doctorid       Int     @id @default(autoincrement())
+  doctorid       BigInt  @id @default(autoincrement())
   userid         BigInt  @unique
   name           String
-  specialization String?
-  phone          String?
-  email          String?
+  specialization String
+  phone          String? @db.VarChar(20)
+  email          String  @unique
   schedule       Json?
   isdeleted      Boolean @default(false)
 
-  user         User          @relation(fields: [userid], references: [userid])
+  user         User          @relation(fields: [userid], references: [userid], onDelete: Cascade)
   assistants   Assistant[]
   appointments Appointment[]
 
@@ -49,73 +45,73 @@ model Doctor {
 }
 
 model Receptionist {
-  receptionistid Int     @id @default(autoincrement())
+  receptionistid BigInt  @id @default(autoincrement())
   userid         BigInt  @unique
   name           String
-  phone          String?
+  phone          String? @db.VarChar(20)
   isdeleted      Boolean @default(false)
 
-  user         User          @relation(fields: [userid], references: [userid])
+  user         User          @relation(fields: [userid], references: [userid], onDelete: Cascade)
   appointments Appointment[]
 
   @@map("receptionists")
 }
 
 model Pharmacist {
-  pharmacistid Int     @id @default(autoincrement())
+  pharmacistid BigInt  @id @default(autoincrement())
   userid       BigInt  @unique
   name         String
-  phone        String?
+  phone        String? @db.VarChar(20)
   isdeleted    Boolean @default(false)
 
-  user User @relation(fields: [userid], references: [userid])
+  user User @relation(fields: [userid], references: [userid], onDelete: Cascade)
 
   @@map("pharmacists")
 }
 
 model Assistant {
-  assistantid Int     @id @default(autoincrement())
+  assistantid BigInt  @id @default(autoincrement())
   userid      BigInt  @unique
-  doctorid    Int
+  doctorid    BigInt
   name        String
-  phone       String?
+  phone       String? @db.VarChar(20)
   isdeleted   Boolean @default(false)
 
-  user   User   @relation(fields: [userid], references: [userid])
+  user   User   @relation(fields: [userid], references: [userid], onDelete: Cascade)
   doctor Doctor @relation(fields: [doctorid], references: [doctorid])
 
   @@map("assistants")
 }
 
 model Patient {
-  patientid      Int       @id @default(autoincrement())
+  patientid      BigInt    @id @default(autoincrement())
   name           String
-  dateofbirth    DateTime  @db.Date
-  gender         String?
-  phone          String?
+  dateofbirth    DateTime? @db.Date
+  gender         String?   @db.VarChar(20)
+  phone          String?   @db.VarChar(20)
   address        String?
   medicalhistory String?
   isdeleted      Boolean   @default(false)
 
-  treatments    Treatment[]
-  appointments  Appointment[]
-  attachments   Attachment[]
-  billings      Billing[]
+  treatments   Treatment[]
+  appointments Appointment[]
+  attachments  Attachment[]
+  billings     Billing[]
 
   @@map("patients")
 }
 
 model Treatment {
-  treatmentid Int      @id @default(autoincrement())
-  patientid   Int
+  treatmentid BigInt    @id @default(autoincrement())
+  patientid   BigInt?
   name        String
   description String?
-  status      String?
-  startdate   DateTime? @db.Timestamptz
+  status      String?   @default("Active") // Active, Completed, Cancelled
+  startdate   DateTime? @default(now()) @db.Timestamptz
   enddate     DateTime? @db.Timestamptz
   isdeleted   Boolean   @default(false)
 
-  patient             Patient              @relation(fields: [patientid], references: [patientid])
+  patient             Patient?             @relation(fields: [patientid], references: [patientid])
   appointments        Appointment[]
   completedProcedures CompletedProcedure[]
 
@@ -123,21 +119,21 @@ model Treatment {
 }
 
 model Appointment {
-  appointmentid   Int      @id @default(autoincrement())
-  patientid       Int
-  doctorid        Int
-  receptionistid  Int?
-  treatmentid     Int?
+  appointmentid   BigInt   @id @default(autoincrement())
+  patientid       BigInt?
+  doctorid        BigInt?
+  receptionistid  BigInt?
+  treatmentid     BigInt?
   appointmenttime DateTime @db.Timestamptz
-  status          String?
+  status          String?  @db.VarChar(20) // Scheduled, Completed, Cancelled
   notes           String?
   isdeleted       Boolean  @default(false)
 
-  patient      Patient       @relation(fields: [patientid], references: [patientid])
-  doctor       Doctor        @relation(fields: [doctorid], references: [doctorid])
+  patient      Patient?      @relation(fields: [patientid], references: [patientid])
+  doctor       Doctor?       @relation(fields: [doctorid], references: [doctorid])
   receptionist Receptionist? @relation(fields: [receptionistid], references: [receptionistid])
   treatment    Treatment?    @relation(fields: [treatmentid], references: [treatmentid])
-  
+
   completedProcedures CompletedProcedure[]
   attachments         Attachment[]
   prescriptions       Prescription[]
@@ -147,13 +143,13 @@ model Appointment {
 }
 
 model CompletedProcedure {
-  procid        Int     @id @default(autoincrement())
-  appointmentid Int
-  treatmentid   Int?
+  procid        BigInt   @id @default(autoincrement())
+  appointmentid BigInt
+  treatmentid   BigInt?
   name          String
-  cost          Decimal @db.Decimal(10, 2)
+  cost          Decimal? @db.Decimal(10, 2)
   notes         String?
-  isdeleted     Boolean @default(false)
+  isdeleted     Boolean  @default(false)
 
   appointment Appointment @relation(fields: [appointmentid], references: [appointmentid])
   treatment   Treatment?  @relation(fields: [treatmentid], references: [treatmentid])
@@ -162,24 +158,24 @@ model CompletedProcedure {
 }
 
 model Attachment {
-  attachmentid  Int      @id @default(autoincrement())
-  appointmentid Int?
-  patientid     Int
-  filetype      String?
-  filepath      String?
+  attachmentid  BigInt   @id @default(autoincrement())
+  appointmentid BigInt
+  patientid     BigInt?
+  filetype      String?  @db.VarChar(50)
+  filepath      String
   uploadedat    DateTime @default(now()) @db.Timestamptz
   isdeleted     Boolean  @default(false)
 
-  appointment Appointment? @relation(fields: [appointmentid], references: [appointmentid])
-  patient     Patient      @relation(fields: [patientid], references: [patientid])
+  appointment Appointment @relation(fields: [appointmentid], references: [appointmentid])
+  patient     Patient?    @relation(fields: [patientid], references: [patientid])
 
   @@map("attachments")
 }
 
 model Prescription {
-  prescriptionid Int      @id @default(autoincrement())
-  appointmentid  Int
-  date           DateTime @db.Timestamptz
+  prescriptionid BigInt   @id @default(autoincrement())
+  appointmentid  BigInt
+  date           DateTime @default(now()) @db.Timestamptz
   notes          String?
   isdeleted      Boolean  @default(false)
 
@@ -190,12 +186,12 @@ model Prescription {
 }
 
 model Medicine {
-  medicineid         Int     @id @default(autoincrement())
+  medicineid         BigInt  @id @default(autoincrement())
   name               String
-  quantity           Int
+  quantity           Int     @default(0)
   price              Decimal @db.Decimal(10, 2)
-  availabilitystatus Boolean @default(true)
   isdeleted          Boolean @default(false)
+  // availabilitystatus is a generated column in DB, don't include here
 
   prescriptionItems PrescriptionItem[]
 
@@ -203,30 +199,30 @@ model Medicine {
 }
 
 model PrescriptionItem {
-  prescriptionitemid Int    @id @default(autoincrement())
-  prescriptionid     Int
-  medicineid         Int
+  prescriptionitemid BigInt  @id @default(autoincrement())
+  prescriptionid     BigInt?
+  medicineid         BigInt?
   quantity           Int
   dosage             String?
 
-  prescription Prescription @relation(fields: [prescriptionid], references: [prescriptionid])
-  medicine     Medicine     @relation(fields: [medicineid], references: [medicineid])
+  prescription Prescription? @relation(fields: [prescriptionid], references: [prescriptionid])
+  medicine     Medicine?     @relation(fields: [medicineid], references: [medicineid])
 
   @@map("prescriptionitems")
 }
 
 model Billing {
-  billingid     Int      @id @default(autoincrement())
-  appointmentid Int
-  patientid     Int
+  billingid     BigInt   @id @default(autoincrement())
+  appointmentid BigInt
+  patientid     BigInt?
   totalamount   Decimal  @db.Decimal(10, 2)
-  type          String   @db.VarChar(10) // CASH | CARD | INSURANCE
-  paymentstatus String?  @db.VarChar(20)
-  date          DateTime @db.Timestamptz
+  type          String?  @db.VarChar(10) // Standard, FBR
+  paymentstatus String?  @default("Pending") @db.VarChar(20)
+  date          DateTime @default(now()) @db.Timestamptz
   isdeleted     Boolean  @default(false)
 
   appointment Appointment @relation(fields: [appointmentid], references: [appointmentid])
-  patient     Patient     @relation(fields: [patientid], references: [patientid])
+  patient     Patient?    @relation(fields: [patientid], references: [patientid])
 
   @@map("billing")
 }

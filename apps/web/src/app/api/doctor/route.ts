@@ -1,26 +1,35 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 
-export async function GET() {
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+// Demo doctors for fallback
+const demoDoctors = [
+  { doctorid: 1, name: "Dr. Arshad Khan", specialization: "Orthodontics", phone: null, email: null },
+  { doctorid: 2, name: "Dr. Sara Ahmed", specialization: "General Dentist", phone: null, email: null },
+  { doctorid: 3, name: "Dr. Naila Raza", specialization: "Pediatrics", phone: null, email: null }
+];
+
+export async function GET(request: Request) {
   try {
-    // 1. Try to get real doctors from the database
-    const doctors = await db.user.findMany({
-      where: { role: 'Doctor' },
+    // Get token from request headers if available
+    const authHeader = request.headers.get('Authorization');
+
+    const response = await fetch(`${API_BASE_URL}/doctors`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authHeader && { Authorization: authHeader }),
+      },
     });
 
-    // 2. If the database is empty, return "Demo Doctors" so the UI isn't blank
-    if (doctors.length === 0) {
-      return NextResponse.json([
-        { name: "Dr. Arshad Khan", specialty: "Orthodontics", bio: "Senior Surgeon", photo: null },
-        { name: "Dr. Sara Ahmed", specialty: "General Dentist", bio: "Family Care", photo: null },
-        { name: "Dr. Naila Raza", specialty: "Pediatrician", bio: "Kids Specialist", photo: null }
-      ]);
+    if (!response.ok) {
+      // Return demo doctors if backend unavailable
+      return NextResponse.json(demoDoctors);
     }
 
-    return NextResponse.json(doctors);
+    const doctors = await response.json();
+    return NextResponse.json(doctors.length > 0 ? doctors : demoDoctors);
   } catch (error) {
-    console.error("Database Error:", error);
-    // Return empty array instead of crashing
-    return NextResponse.json([]);
+    console.error("API Error:", error);
+    return NextResponse.json(demoDoctors);
   }
 }

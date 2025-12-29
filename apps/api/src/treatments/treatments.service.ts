@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTreatmentDto } from './dto/create-treatment.dto';
+import { UpdateTreatmentDto } from './dto/update-treatment.dto';
 
 @Injectable()
 export class TreatmentsService {
@@ -26,8 +27,33 @@ export class TreatmentsService {
   }
 
   async findOne(id: number) {
-    return this.prisma.treatment.findFirst({
+    const treatment = await this.prisma.treatment.findFirst({
       where: { treatmentid: id, isdeleted: false },
+    });
+    if (!treatment) {
+      throw new NotFoundException(`Treatment #${id} not found`);
+    }
+    return treatment;
+  }
+
+  async update(id: number, updateTreatmentDto: UpdateTreatmentDto) {
+    await this.findOne(id);
+    return this.prisma.treatment.update({
+      where: { treatmentid: id },
+      data: {
+        ...(updateTreatmentDto.name && { name: updateTreatmentDto.name }),
+        ...(updateTreatmentDto.description && { description: updateTreatmentDto.description }),
+        ...(updateTreatmentDto.status && { status: updateTreatmentDto.status }),
+        ...(updateTreatmentDto.enddate && { enddate: new Date(updateTreatmentDto.enddate) }),
+      },
+    });
+  }
+
+  async remove(id: number) {
+    await this.findOne(id);
+    return this.prisma.treatment.update({
+      where: { treatmentid: id },
+      data: { isdeleted: true },
     });
   }
 }

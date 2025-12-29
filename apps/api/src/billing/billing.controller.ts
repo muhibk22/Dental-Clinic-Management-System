@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Body, Param, UseGuards, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Patch, Delete, ParseIntPipe } from '@nestjs/common';
 import { BillingService } from './billing.service';
 import { CreateBillingDto } from './dto/create-billing.dto';
+import { UpdateBillingDto } from './dto/update-billing.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -35,5 +36,21 @@ export class BillingController {
   @Roles('ADMIN', 'RECEPTIONIST')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.billingService.findOne(id);
+  }
+
+  @ApiOperation({ summary: 'Update a bill' })
+  @ApiResponse({ status: 200, description: 'The bill has been successfully updated.' })
+  @Patch(':id')
+  @Roles('ADMIN', 'RECEPTIONIST')
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateBillingDto: UpdateBillingDto) {
+    return this.billingService.update(id, updateBillingDto);
+  }
+
+  @ApiOperation({ summary: 'Delete a bill (soft delete)' })
+  @ApiResponse({ status: 200, description: 'The bill has been successfully deleted.' })
+  @Delete(':id')
+  @Roles('ADMIN')
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.billingService.remove(id);
   }
 }

@@ -1,15 +1,35 @@
-"use client"; // This MUST be at the very top
+"use client";
 
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import Header from '@/components/Header';
+import { login as apiLogin } from '@/lib/api';
+import { getDashboardPath } from '@/lib/auth';
 
 export default function AdminLogin() {
   const router = useRouter();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // This line forces the browser to go to the dashboard
-    router.push('/dashboard/admin');
+    setError('');
+    setIsLoading(true);
+
+    const result = await apiLogin({ username, password });
+
+    if (result.error) {
+      setError(result.error);
+      setIsLoading(false);
+      return;
+    }
+
+    if (result.data) {
+      const dashboardPath = getDashboardPath(result.data.user.role);
+      router.push(dashboardPath);
+    }
   };
 
   return (
@@ -24,30 +44,42 @@ export default function AdminLogin() {
             <h1 className="text-4xl font-black text-slate-900 mt-4">Login</h1>
           </div>
 
-          {/* ADD THE onSubmit HANDLER HERE */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm font-medium">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <label className="text-xs font-bold text-slate-500 uppercase">Email Address</label>
-              <input 
-                type="email" 
-                defaultValue="admin@oradent.com"
+              <label className="text-xs font-bold text-slate-500 uppercase">Username</label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter your username"
+                required
                 className="w-full p-4 bg-slate-100 rounded-xl mt-2 outline-none focus:ring-2 focus:ring-blue-600"
               />
             </div>
             <div>
               <label className="text-xs font-bold text-slate-500 uppercase">Password</label>
-              <input 
-                type="password" 
-                defaultValue="password"
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                required
                 className="w-full p-4 bg-slate-100 rounded-xl mt-2 outline-none focus:ring-2 focus:ring-blue-600"
               />
             </div>
 
-            <button 
-              type="submit" 
-              className="w-full bg-[#1e3a8a] text-white font-bold py-4 rounded-xl hover:bg-blue-800 transition-all"
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-[#1e3a8a] text-white font-bold py-4 rounded-xl hover:bg-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign In to Admin
+              {isLoading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
         </div>

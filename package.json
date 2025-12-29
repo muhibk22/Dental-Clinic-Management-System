@@ -13,12 +13,14 @@
         "format": "prettier --write \"**/*.{ts,tsx,md}\""
     },
     "devDependencies": {
+        "@types/js-cookie": "^3.0.6",
         "prettier": "latest",
         "prisma": "^7.1.0",
         "turbo": "latest"
     },
     "packageManager": "npm@10.0.0",
     "dependencies": {
-        "@prisma/client": "^7.1.0"
+        "@prisma/client": "^7.1.0",
+        "js-cookie": "^3.0.5"
     }
 }

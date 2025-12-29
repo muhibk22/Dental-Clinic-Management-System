@@ -19,7 +19,7 @@ export class CreateBillingDto {
     @ApiProperty({ example: 'CASH' })
     @IsString()
     @IsNotEmpty()
-    type: string; // CASH | CARD | INSURANCE
+    type: string; // Standard | FBR
 
     @ApiPropertyOptional({ example: 'PAID' })
     @IsString()

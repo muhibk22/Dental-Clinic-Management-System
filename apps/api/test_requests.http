@@ -1,0 +1,77 @@
+### 1. Login to get Access Token
+# @name login
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "password"
+}
+
+### Variable to store token
+@authToken = {{login.response.body.access_token}}
+
+### 2. Create a Doctor (Requires Admin)
+POST http://localhost:3000/doctors
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+    "userid": "2", 
+    "name": "Dr. Gregory House",
+    "specialization": "Diagnostician",
+    "phone": "555-0199",
+    "email": "house@clinic.com"
+}
+
+### 3. Get All Doctors
+GET http://localhost:3000/doctors
+Authorization: Bearer {{authToken}}
+
+### 4. Create a Patient
+POST http://localhost:3000/patients
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "dateofbirth": "1985-07-20",
+  "gender": "Male",
+  "phone": "555-1234",
+  "address": "123 Baker St"
+}
+
+### 5. Get All Patients
+GET http://localhost:3000/patients
+Authorization: Bearer {{authToken}}
+
+### 6. Create Appointment
+POST http://localhost:3000/appointments
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "patientid": 1,
+  "doctorid": 1,
+  "appointmenttime": "2025-12-25T10:00:00.000Z",
+  "notes": "Regular checkup"
+}
+
+### 7. Get Appointments
+GET http://localhost:3000/appointments
+Authorization: Bearer {{authToken}}
+
+### 8. Create Medicine (Pharmacy)
+POST http://localhost:3000/medicines
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "name": "Paracetamol",
+  "quantity": 100,
+  "price": 5.50
+}
+
+### 9. Get Medicines
+GET http://localhost:3000/medicines
+Authorization: Bearer {{authToken}}

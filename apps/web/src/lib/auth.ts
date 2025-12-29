@@ -14,14 +14,14 @@ export const roleDisplayNames: Record<Role, string> = {
   ASSISTANT: 'Assistant',
 };
 
-// Dashboard paths for each role
+// Dashboard paths for each role - all staff go to admin portal
 export const roleDashboardPaths: Record<Role, string> = {
   ADMIN: '/dashboard/admin',
-  DOCTOR: '/dashboard/doctor',
-  PATIENT: '/dashboard/patient',
-  PHARMACIST: '/dashboard/pharmacist',
-  RECEPTIONIST: '/dashboard/receptionist',
-  ASSISTANT: '/dashboard/assistant',
+  DOCTOR: '/dashboard/admin',
+  PATIENT: '/dashboard/admin',
+  PHARMACIST: '/dashboard/admin',
+  RECEPTIONIST: '/dashboard/admin',
+  ASSISTANT: '/dashboard/admin',
 };
 
 // Get dashboard path for a role (case-insensitive)

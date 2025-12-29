@@ -46,7 +46,7 @@ export default function AdminSidebar() {
 
     const handleLogout = () => {
         logout();
-        window.location.href = '/login/admin';
+        window.location.href = '/';
     };
 
     const isActive = (href: string) => {

@@ -341,3 +341,67 @@ export async function createBilling(data: CreateBillingDto): Promise<ApiResponse
         body: JSON.stringify(data),
     });
 }
+
+// ============ Users API ============
+
+export interface User {
+    userid: string;
+    username: string;
+    role: string;
+    isdeleted: boolean;
+    profile?: {
+        name?: string;
+        phone?: string;
+        email?: string;
+        specialization?: string;
+    };
+}
+
+export interface CreateUserDto {
+    username: string;
+    password: string;
+    role: string;
+    name?: string;
+    phone?: string;
+    specialization?: string;
+    email?: string;
+    doctorid?: number;
+}
+
+export interface UpdateUserDto {
+    username?: string;
+    password?: string;
+    name?: string;
+    phone?: string;
+    specialization?: string;
+    email?: string;
+}
+
+export async function getUsers(): Promise<ApiResponse<User[]>> {
+    return apiRequest<User[]>('/users');
+}
+
+export async function getUser(id: number): Promise<ApiResponse<User>> {
+    return apiRequest<User>(`/users/${id}`);
+}
+
+export async function createUser(data: CreateUserDto): Promise<ApiResponse<User>> {
+    return apiRequest<User>('/users', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+export async function updateUser(id: number, data: UpdateUserDto): Promise<ApiResponse<{ message: string }>> {
+    return apiRequest<{ message: string }>(`/users/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+    });
+}
+
+export async function deleteUser(id: number): Promise<ApiResponse<{ message: string }>> {
+    return apiRequest<{ message: string }>(`/users/${id}`, {
+        method: 'DELETE',
+    });
+}
+

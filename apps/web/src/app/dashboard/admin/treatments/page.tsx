@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Plus, Edit2, Trash2, Activity, User } from 'lucide-react';
+import Cookies from 'js-cookie';
 import DashboardLayout from '@/components/admin/DashboardLayout';
 import DataTable from '@/components/admin/DataTable';
 import Modal from '@/components/ui/Modal';
@@ -12,12 +13,23 @@ import FormSelect from '@/components/ui/FormSelect';
 import FormTextarea from '@/components/ui/FormTextarea';
 import ActionButton from '@/components/ui/ActionButton';
 import TableActions from '@/components/ui/TableActions';
-import { getTreatments, getPatients, createTreatment, updateTreatment, deleteTreatment, Treatment, Patient } from '@/lib/api';
+import { getTreatments, getPatients, getAppointments, createTreatment, updateTreatment, deleteTreatment, Treatment, Patient, Appointment } from '@/lib/api';
 import { treatmentStatusOptions } from '@/lib/constants';
+import { useUserRole } from '@/components/admin/Sidebar';
+
+// Get current user from cookie
+const getCurrentUser = () => {
+    try {
+        const userStr = Cookies.get('dcms_user');
+        if (userStr) return JSON.parse(userStr);
+    } catch { }
+    return null;
+};
 
 export default function TreatmentsPage() {
     const [treatments, setTreatments] = useState<Treatment[]>([]);
     const [patients, setPatients] = useState<Patient[]>([]);
+    const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedTreatment, setSelectedTreatment] = useState<Treatment | null>(null);
@@ -25,15 +37,36 @@ export default function TreatmentsPage() {
     const [error, setError] = useState('');
     const [formData, setFormData] = useState({ patientid: '', name: '', description: '', status: 'Active' });
 
+    const userRole = useUserRole();
+    const isReadOnly = userRole === 'ASSISTANT';
+
+    const currentUser = getCurrentUser();
+    const isAssistant = currentUser?.role?.toUpperCase() === 'ASSISTANT';
+    const assignedDoctorId = isAssistant && currentUser?.doctorid ? parseInt(currentUser.doctorid) : null;
+
     const fetchData = async () => {
         setLoading(true);
-        const [treatRes, patRes] = await Promise.all([getTreatments(), getPatients()]);
+        const [treatRes, patRes, aptRes] = await Promise.all([getTreatments(), getPatients(), getAppointments()]);
         if (treatRes.data) setTreatments(treatRes.data);
         if (patRes.data) setPatients(patRes.data);
+        if (aptRes.data) setAppointments(aptRes.data);
         setLoading(false);
     };
 
     useEffect(() => { fetchData(); }, []);
+
+    // Filter treatments based on assigned doctor for assistants (via appointments linked to patients)
+    const visibleTreatments = useMemo(() => {
+        if (assignedDoctorId) {
+            const patientIds = new Set(
+                appointments
+                    .filter(a => Number(a.doctorid) === assignedDoctorId)
+                    .map(a => a.patientid)
+            );
+            return treatments.filter(t => patientIds.has(t.patientid));
+        }
+        return treatments;
+    }, [treatments, appointments, assignedDoctorId]);
 
     const handleAddTreatment = () => {
         setSelectedTreatment(null);
@@ -99,19 +132,23 @@ export default function TreatmentsPage() {
         { key: 'patientid', label: 'Patient', render: (t: Treatment) => <div className="flex items-center gap-2"><User size={16} className="text-slate-400" /><span>{getPatientName(t.patientid)}</span></div> },
         { key: 'status', label: 'Status', sortable: true, render: (t: Treatment) => <Badge variant={statusColors[t.status || 'Active'] || 'default'}>{t.status || 'Active'}</Badge> },
         { key: 'startdate', label: 'Start Date', sortable: true, render: (t: Treatment) => t.startdate ? new Date(t.startdate).toLocaleDateString() : '-' },
-        {
+        ...(!isReadOnly ? [{
             key: 'actions', label: 'Actions', className: 'text-right', render: (t: Treatment) => (
                 <TableActions>
                     <ActionButton icon={Edit2} onClick={() => handleEditTreatment(t)} variant="edit" title="Edit" />
                     <ActionButton icon={Trash2} onClick={() => handleDeleteTreatment(t)} variant="delete" title="Delete" />
                 </TableActions>
             )
-        },
+        }] : []),
     ];
 
     return (
-        <DashboardLayout title="Treatments" subtitle="Manage patient treatment plans" actions={<Button onClick={handleAddTreatment} className="flex items-center gap-2"><Plus size={18} /> New Treatment</Button>}>
-            <DataTable columns={columns} data={treatments} loading={loading} searchPlaceholder="Search treatments..." emptyMessage="No treatments found" />
+        <DashboardLayout
+            title="Treatments"
+            subtitle={isReadOnly ? "View patient treatment plans (Read-only)" : "Manage patient treatment plans"}
+            actions={!isReadOnly ? <Button onClick={handleAddTreatment} className="flex items-center gap-2"><Plus size={18} /> New Treatment</Button> : null}
+        >
+            <DataTable columns={columns} data={visibleTreatments} loading={loading} searchPlaceholder="Search treatments..." emptyMessage="No treatments found" />
             <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={selectedTreatment ? 'Edit Treatment' : 'Create New Treatment'} size="lg"
                 footer={<><Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button><Button onClick={handleSubmit} disabled={saving}>{saving ? 'Saving...' : selectedTreatment ? 'Update' : 'Create Treatment'}</Button></>}>
                 {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{error}</div>}

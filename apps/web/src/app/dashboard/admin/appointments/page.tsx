@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { Plus, Edit2, Trash2, Clock, User, Stethoscope, Calendar, ChevronLeft, ChevronRight, Filter, CalendarDays, CalendarClock, CheckCircle2, XCircle, AlertCircle, X, AlertTriangle } from 'lucide-react';
+import Cookies from 'js-cookie';
 import DashboardLayout from '@/components/admin/DashboardLayout';
 import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
@@ -14,6 +15,15 @@ import TableActions from '@/components/ui/TableActions';
 import { getAppointments, getPatients, getDoctors, createAppointment, updateAppointment, deleteAppointment, Appointment, Patient, Doctor } from '@/lib/api';
 
 type StatusFilter = 'all' | 'Scheduled' | 'Completed' | 'Cancelled' | 'Missed';
+
+// Get current user from cookie
+const getCurrentUser = () => {
+    try {
+        const userStr = Cookies.get('dcms_user');
+        if (userStr) return JSON.parse(userStr);
+    } catch { }
+    return null;
+};
 
 // Helper to determine effective status (marks past appointments as Missed)
 const getEffectiveStatus = (apt: Appointment): string => {
@@ -44,9 +54,24 @@ export default function AppointmentsPage() {
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
     const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | null>(null);
 
+    // Get current user info
+    const currentUser = getCurrentUser();
+    const isDoctor = currentUser?.role?.toUpperCase() === 'DOCTOR';
+    const isAssistant = currentUser?.role?.toUpperCase() === 'ASSISTANT';
+    const shouldFilterByDoctor = isDoctor || isAssistant;
+
+    // Get doctorid from user cookie (set at login for doctor and assistant users)
+    const currentDoctorId = shouldFilterByDoctor && currentUser?.doctorid
+        ? parseInt(currentUser.doctorid)
+        : null;
+
     const fetchData = async () => {
         setLoading(true);
-        const [aptRes, patRes, docRes] = await Promise.all([getAppointments(), getPatients(), getDoctors()]);
+        const [aptRes, patRes, docRes] = await Promise.all([
+            getAppointments(),
+            getPatients(),
+            getDoctors()
+        ]);
         if (aptRes.data) setAppointments(aptRes.data);
         if (patRes.data) setPatients(patRes.data);
         if (docRes.data) setDoctors(docRes.data);
@@ -55,7 +80,18 @@ export default function AppointmentsPage() {
 
     useEffect(() => { fetchData(); }, []);
 
-    // Stats calculations
+    // Filter appointments for doctors and assistants (they only see their assigned doctor's appointments)
+    const visibleAppointments = useMemo(() => {
+        if (shouldFilterByDoctor && currentDoctorId) {
+            return appointments.filter(a => {
+                const aptDoctorId = typeof a.doctorid === 'string' ? parseInt(a.doctorid) : Number(a.doctorid);
+                return aptDoctorId === currentDoctorId;
+            });
+        }
+        return appointments;
+    }, [appointments, shouldFilterByDoctor, currentDoctorId]);
+
+    // Stats calculations (use visibleAppointments instead of all appointments)
     const stats = useMemo(() => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -65,24 +101,24 @@ export default function AppointmentsPage() {
         weekEnd.setDate(weekEnd.getDate() + 7);
 
         return {
-            today: appointments.filter(a => {
+            today: visibleAppointments.filter(a => {
                 const d = new Date(a.appointmenttime);
                 return d >= today && d < tomorrow;
             }).length,
-            thisWeek: appointments.filter(a => {
+            thisWeek: visibleAppointments.filter(a => {
                 const d = new Date(a.appointmenttime);
                 return d >= today && d < weekEnd;
             }).length,
-            scheduled: appointments.filter(a => getEffectiveStatus(a) === 'Scheduled').length,
-            completed: appointments.filter(a => a.status === 'Completed').length,
-            cancelled: appointments.filter(a => a.status === 'Cancelled').length,
-            missed: appointments.filter(a => getEffectiveStatus(a) === 'Missed').length,
+            scheduled: visibleAppointments.filter(a => getEffectiveStatus(a) === 'Scheduled').length,
+            completed: visibleAppointments.filter(a => a.status === 'Completed').length,
+            cancelled: visibleAppointments.filter(a => a.status === 'Cancelled').length,
+            missed: visibleAppointments.filter(a => getEffectiveStatus(a) === 'Missed').length,
         };
-    }, [appointments]);
+    }, [visibleAppointments]);
 
     // Filtered appointments
     const filteredAppointments = useMemo(() => {
-        let filtered = [...appointments];
+        let filtered = [...visibleAppointments];
 
         // Filter by calendar date if selected
         if (selectedCalendarDate) {
@@ -106,7 +142,7 @@ export default function AppointmentsPage() {
         });
 
         return filtered;
-    }, [appointments, statusFilter, selectedCalendarDate]);
+    }, [visibleAppointments, statusFilter, selectedCalendarDate]);
 
     // Today's appointments for timeline
     const todayAppointments = useMemo(() => {
@@ -115,13 +151,13 @@ export default function AppointmentsPage() {
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
-        return appointments
+        return visibleAppointments
             .filter(a => {
                 const d = new Date(a.appointmenttime);
                 return d >= today && d < tomorrow;
             })
             .sort((a, b) => new Date(a.appointmenttime).getTime() - new Date(b.appointmenttime).getTime());
-    }, [appointments]);
+    }, [visibleAppointments]);
 
     // Calendar helpers
     const calendarDays = useMemo(() => {
@@ -139,7 +175,7 @@ export default function AppointmentsPage() {
     }, [selectedDate]);
 
     const getAppointmentsForDate = (date: Date) => {
-        return appointments.filter(a => {
+        return visibleAppointments.filter(a => {
             const d = new Date(a.appointmenttime);
             return d.toDateString() === date.toDateString();
         });
@@ -183,7 +219,7 @@ export default function AppointmentsPage() {
 
     const handleAddAppointment = () => {
         setSelectedAppointment(null);
-        setFormData({ patientid: '', doctorid: '', appointmenttime: '', notes: '', status: 'Scheduled' });
+        setFormData({ patientid: '', doctorid: currentDoctorId ? String(currentDoctorId) : '', appointmenttime: '', notes: '', status: 'Scheduled' });
         setError('');
         setModalOpen(true);
     };
@@ -270,7 +306,9 @@ export default function AppointmentsPage() {
         Missed: 'warning'
     };
     const patientOptions = patients.map(p => ({ value: p.patientid, label: p.name }));
-    const doctorOptions = doctors.map(d => ({ value: d.doctorid, label: d.name }));
+    const doctorOptions = doctors
+        .filter(d => !currentDoctorId || d.doctorid === currentDoctorId)
+        .map(d => ({ value: d.doctorid, label: d.name }));
     const statusOptions = [
         { value: 'Scheduled', label: 'Scheduled' },
         { value: 'Completed', label: 'Completed' },

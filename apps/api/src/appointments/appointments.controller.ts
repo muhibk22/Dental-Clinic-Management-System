@@ -17,7 +17,7 @@ export class AppointmentsController {
   @ApiOperation({ summary: 'Create a new appointment' })
   @ApiResponse({ status: 201, description: 'The appointment has been successfully created.' })
   @Post()
-  @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR')
+  @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR', 'ASSISTANT')
   create(@Body() createAppointmentDto: CreateAppointmentDto) {
     return this.appointmentsService.create(createAppointmentDto);
   }
@@ -25,7 +25,7 @@ export class AppointmentsController {
   @ApiOperation({ summary: 'Get all appointments' })
   @ApiResponse({ status: 200, description: 'Return all appointments.' })
   @Get()
-  @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR')
+  @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR', 'ASSISTANT')
   findAll() {
     return this.appointmentsService.findAll();
   }
@@ -33,7 +33,7 @@ export class AppointmentsController {
   @ApiOperation({ summary: 'Get an appointment by ID' })
   @ApiResponse({ status: 200, description: 'Return the appointment.' })
   @Get(':id')
-  @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR')
+  @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR', 'ASSISTANT')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.appointmentsService.findOne(id);
   }
@@ -41,7 +41,7 @@ export class AppointmentsController {
   @ApiOperation({ summary: 'Update an appointment' })
   @ApiResponse({ status: 200, description: 'The appointment has been successfully updated.' })
   @Patch(':id')
-  @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR')
+  @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR', 'ASSISTANT')
   update(@Param('id', ParseIntPipe) id: number, @Body() updateAppointmentDto: UpdateAppointmentDto) {
     return this.appointmentsService.update(id, updateAppointmentDto);
   }
@@ -49,7 +49,7 @@ export class AppointmentsController {
   @ApiOperation({ summary: 'Cancel an appointment (soft delete)' })
   @ApiResponse({ status: 200, description: 'The appointment has been successfully cancelled.' })
   @Delete(':id')
-  @Roles('ADMIN', 'RECEPTIONIST')
+  @Roles('ADMIN', 'RECEPTIONIST', 'ASSISTANT')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.appointmentsService.remove(id);
   }

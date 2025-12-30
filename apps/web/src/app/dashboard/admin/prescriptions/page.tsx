@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Plus, Edit2, Trash2, FileText, Calendar, Printer } from 'lucide-react';
+import Cookies from 'js-cookie';
 import DashboardLayout from '@/components/admin/DashboardLayout';
 import DataTable from '@/components/admin/DataTable';
 import { QuickStat, QuickStatsGrid } from '@/components/admin/QuickStats';
@@ -14,6 +15,15 @@ import ActionButton from '@/components/ui/ActionButton';
 import TableActions from '@/components/ui/TableActions';
 import { getPrescriptions, createPrescription, updatePrescription, deletePrescription, getAppointments, getPatients, getDoctors, Prescription, Appointment, Patient, Doctor } from '@/lib/api';
 import { useUserRole, canEdit } from '@/components/admin/Sidebar';
+
+// Get current user from cookie
+const getCurrentUser = () => {
+    try {
+        const userStr = Cookies.get('dcms_user');
+        if (userStr) return JSON.parse(userStr);
+    } catch { }
+    return null;
+};
 
 export default function PrescriptionsPage() {
     const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
@@ -31,9 +41,31 @@ export default function PrescriptionsPage() {
     const userRole = useUserRole();
     const canEditPrescriptions = canEdit(userRole, 'prescriptions');
 
+    // Get assigned doctor for assistants
+    const currentUser = getCurrentUser();
+    const isAssistant = currentUser?.role?.toUpperCase() === 'ASSISTANT';
+    const assignedDoctorId = isAssistant && currentUser?.doctorid ? parseInt(currentUser.doctorid) : null;
+
     const fetchData = async () => { setLoading(true); const [prescRes, aptRes, patRes, docRes] = await Promise.all([getPrescriptions(), getAppointments(), getPatients(), getDoctors()]); if (prescRes.data) setPrescriptions(prescRes.data); if (aptRes.data) setAppointments(aptRes.data); if (patRes.data) setPatients(patRes.data); if (docRes.data) setDoctors(docRes.data); setLoading(false); };
 
     useEffect(() => { fetchData(); }, []);
+
+    // Filter appointments by assigned doctor for assistants
+    const visibleAppointments = useMemo(() => {
+        if (assignedDoctorId) {
+            return appointments.filter(a => Number(a.doctorid) === assignedDoctorId);
+        }
+        return appointments;
+    }, [appointments, assignedDoctorId]);
+
+    // Filter prescriptions to only those linked to visible appointments
+    const visiblePrescriptions = useMemo(() => {
+        if (assignedDoctorId) {
+            const visibleAptIds = new Set(visibleAppointments.map(a => a.appointmentid));
+            return prescriptions.filter(p => visibleAptIds.has(p.appointmentid));
+        }
+        return prescriptions;
+    }, [prescriptions, visibleAppointments, assignedDoctorId]);
 
     const getPatientFromAppointment = (appointmentid: number) => { const apt = appointments.find(a => a.appointmentid === appointmentid); return apt ? patients.find(p => p.patientid === apt.patientid) : null; };
     const getDoctorFromAppointment = (appointmentid: number) => { const apt = appointments.find(a => a.appointmentid === appointmentid); return apt ? doctors.find(d => d.doctorid === apt.doctorid) : null; };
@@ -72,9 +104,9 @@ export default function PrescriptionsPage() {
         if (isNew && result.data) { setSelectedPrescription(result.data); setPrintModalOpen(true); }
     };
 
-    const thisMonthCount = prescriptions.filter(p => { const d = new Date(p.date); const now = new Date(); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); }).length;
+    const thisMonthCount = visiblePrescriptions.filter(p => { const d = new Date(p.date); const now = new Date(); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); }).length;
 
-    const appointmentOptions = appointments.map(a => { const patient = patients.find(p => p.patientid === a.patientid); const doctor = doctors.find(d => d.doctorid === a.doctorid); return { value: a.appointmentid, label: `#${a.appointmentid} - ${patient?.name || 'Unknown'} (Dr. ${doctor?.name || 'Unknown'}) - ${new Date(a.appointmenttime).toLocaleDateString()}` }; });
+    const appointmentOptions = visibleAppointments.map(a => { const patient = patients.find(p => p.patientid === a.patientid); const doctor = doctors.find(d => d.doctorid === a.doctorid); return { value: a.appointmentid, label: `#${a.appointmentid} - ${patient?.name || 'Unknown'} (Dr. ${doctor?.name || 'Unknown'}) - ${new Date(a.appointmenttime).toLocaleDateString()}` }; });
 
     const columns = [
         { key: 'prescriptionid', label: 'Prescription #', sortable: true, render: (p: Prescription) => <div className="flex items-center gap-3"><div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center"><FileText size={18} className="text-purple-600" /></div><span className="font-semibold text-slate-900">RX-{String(p.prescriptionid).padStart(4, '0')}</span></div> },
@@ -94,8 +126,8 @@ export default function PrescriptionsPage() {
 
     return (
         <DashboardLayout title="Prescriptions" subtitle={canEditPrescriptions ? "Manage patient prescriptions" : "View prescriptions (Read-only)"} actions={canEditPrescriptions ? <Button onClick={handleAddPrescription} className="flex items-center gap-2"><Plus size={18} /> New Prescription</Button> : null}>
-            <QuickStatsGrid columns={2}><QuickStat label="Total Prescriptions" value={prescriptions.length} /><QuickStat label="This Month" value={thisMonthCount} color="purple" /></QuickStatsGrid>
-            <DataTable columns={columns} data={prescriptions} loading={loading} searchPlaceholder="Search prescriptions..." emptyMessage="No prescriptions found" />
+            <QuickStatsGrid columns={2}><QuickStat label="Total Prescriptions" value={visiblePrescriptions.length} /><QuickStat label="This Month" value={thisMonthCount} color="purple" /></QuickStatsGrid>
+            <DataTable columns={columns} data={visiblePrescriptions} loading={loading} searchPlaceholder="Search prescriptions..." emptyMessage="No prescriptions found" />
             <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={selectedPrescription ? 'Edit Prescription' : 'New Prescription'} size="lg" footer={<><Button variant="outline" onClick={() => setModalOpen(false)}>Cancel</Button><Button onClick={handleSubmit} disabled={saving}>{saving ? 'Saving...' : selectedPrescription ? 'Update' : 'Create & Print'}</Button></>}>
                 {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{error}</div>}
                 <div className="space-y-4">

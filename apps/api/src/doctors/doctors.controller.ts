@@ -25,7 +25,7 @@ export class DoctorsController {
   @ApiOperation({ summary: 'Get all doctors' })
   @ApiResponse({ status: 200, description: 'Return all doctors.' })
   @Get()
-  @Roles('ADMIN', 'RECEPTIONIST')
+  @Roles('ADMIN', 'RECEPTIONIST', 'DOCTOR', 'ASSISTANT')
   findAll() {
     return this.doctorsService.findAll();
   }

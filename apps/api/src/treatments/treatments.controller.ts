@@ -25,7 +25,7 @@ export class TreatmentsController {
   @ApiOperation({ summary: 'Get all treatments' })
   @ApiResponse({ status: 200, description: 'Return all treatments.' })
   @Get()
-  @Roles('ADMIN', 'DOCTOR', 'RECEPTIONIST')
+  @Roles('ADMIN', 'DOCTOR', 'RECEPTIONIST', 'ASSISTANT')
   findAll() {
     return this.treatmentsService.findAll();
   }
@@ -33,7 +33,7 @@ export class TreatmentsController {
   @ApiOperation({ summary: 'Get a treatment by ID' })
   @ApiResponse({ status: 200, description: 'Return the treatment.' })
   @Get(':id')
-  @Roles('ADMIN', 'DOCTOR')
+  @Roles('ADMIN', 'DOCTOR', 'ASSISTANT')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.treatmentsService.findOne(id);
   }

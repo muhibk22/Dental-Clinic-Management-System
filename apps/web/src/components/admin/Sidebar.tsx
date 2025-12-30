@@ -64,7 +64,6 @@ const navItems: NavItem[] = [
         href: '/dashboard/admin/appointments',
         icon: <Calendar size={20} />,
         roles: ['ADMIN', 'DOCTOR', 'RECEPTIONIST', 'ASSISTANT'],
-        readOnlyRoles: ['ASSISTANT']
     },
     {
         label: 'Treatments',
@@ -90,8 +89,8 @@ const navItems: NavItem[] = [
         label: 'Prescriptions',
         href: '/dashboard/admin/prescriptions',
         icon: <FileText size={20} />,
-        roles: ['ADMIN', 'DOCTOR', 'PHARMACIST'],
-        readOnlyRoles: ['PHARMACIST']
+        roles: ['ADMIN', 'DOCTOR', 'PHARMACIST', 'ASSISTANT'],
+        readOnlyRoles: ['PHARMACIST', 'ASSISTANT']
     },
 ];
 
@@ -276,7 +275,7 @@ export function canEdit(role: Role, module: string): boolean {
         users: ['ADMIN'],
         doctors: ['ADMIN'],
         patients: ['ADMIN', 'DOCTOR', 'RECEPTIONIST'],
-        appointments: ['ADMIN', 'DOCTOR', 'RECEPTIONIST'],
+        appointments: ['ADMIN', 'DOCTOR', 'RECEPTIONIST', 'ASSISTANT'],
         treatments: ['ADMIN', 'DOCTOR'],
         medicines: ['ADMIN', 'PHARMACIST'],
         billing: ['ADMIN', 'DOCTOR', 'RECEPTIONIST'],

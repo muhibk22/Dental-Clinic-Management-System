@@ -133,6 +133,19 @@ export async function createPatient(data: CreatePatientDto): Promise<ApiResponse
     });
 }
 
+export async function updatePatient(id: number, data: Partial<CreatePatientDto>): Promise<ApiResponse<Patient>> {
+    return apiRequest<Patient>(`/patients/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+    });
+}
+
+export async function deletePatient(id: number): Promise<ApiResponse<{ message: string }>> {
+    return apiRequest<{ message: string }>(`/patients/${id}`, {
+        method: 'DELETE',
+    });
+}
+
 // ============ Doctors API ============
 
 export interface Doctor {
@@ -208,6 +221,19 @@ export async function createAppointment(data: CreateAppointmentDto): Promise<Api
     });
 }
 
+export async function updateAppointment(id: number, data: Partial<CreateAppointmentDto>): Promise<ApiResponse<Appointment>> {
+    return apiRequest<Appointment>(`/appointments/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+    });
+}
+
+export async function deleteAppointment(id: number): Promise<ApiResponse<{ message: string }>> {
+    return apiRequest<{ message: string }>(`/appointments/${id}`, {
+        method: 'DELETE',
+    });
+}
+
 // ============ Treatments API ============
 
 export interface Treatment {
@@ -244,6 +270,19 @@ export async function createTreatment(data: CreateTreatmentDto): Promise<ApiResp
     });
 }
 
+export async function updateTreatment(id: number, data: Partial<CreateTreatmentDto>): Promise<ApiResponse<Treatment>> {
+    return apiRequest<Treatment>(`/treatments/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+    });
+}
+
+export async function deleteTreatment(id: number): Promise<ApiResponse<{ message: string }>> {
+    return apiRequest<{ message: string }>(`/treatments/${id}`, {
+        method: 'DELETE',
+    });
+}
+
 // ============ Medicines API ============
 
 export interface Medicine {
@@ -273,6 +312,19 @@ export async function createMedicine(data: CreateMedicineDto): Promise<ApiRespon
     return apiRequest<Medicine>('/medicines', {
         method: 'POST',
         body: JSON.stringify(data),
+    });
+}
+
+export async function updateMedicine(id: number, data: Partial<CreateMedicineDto>): Promise<ApiResponse<Medicine>> {
+    return apiRequest<Medicine>(`/medicines/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+    });
+}
+
+export async function deleteMedicine(id: number): Promise<ApiResponse<{ message: string }>> {
+    return apiRequest<{ message: string }>(`/medicines/${id}`, {
+        method: 'DELETE',
     });
 }
 

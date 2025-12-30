@@ -204,6 +204,7 @@ export interface CreateAppointmentDto {
     receptionistid?: number;
     treatmentid?: number;
     notes?: string;
+    status?: string;
 }
 
 export async function getAppointments(): Promise<ApiResponse<Appointment[]>> {

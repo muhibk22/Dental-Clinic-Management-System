@@ -14,9 +14,9 @@ interface Doctor {
 
 // Fallback demo doctors for when API is unavailable
 const demoDoctors: Doctor[] = [
-  { doctorid: 1, name: "Dr. Arshad Khan", specialization: "Orthodontics", email: "arshad@oradent.com", phone: null },
-  { doctorid: 2, name: "Dr. Sara Ahmed", specialization: "General Dentist", email: "sara@oradent.com", phone: null },
-  { doctorid: 3, name: "Dr. Naila Raza", specialization: "Pediatrics", email: "naila@oradent.com", phone: null },
+  { doctorid: 1, name: "Dr. Arshad Khan", specialization: "Orthodontics", email: "arshad@fdc.com", phone: null },
+  { doctorid: 2, name: "Dr. Sara Ahmed", specialization: "General Dentist", email: "sara@fdc.com", phone: null },
+  { doctorid: 3, name: "Dr. Naila Raza", specialization: "Pediatrics", email: "naila@fdc.com", phone: null },
 ];
 
 export default async function DoctorsGrid() {

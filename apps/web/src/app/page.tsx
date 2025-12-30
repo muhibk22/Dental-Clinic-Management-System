@@ -57,10 +57,10 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-4">
             <div className="w-12 h-12 bg-gradient-to-br from-teal-400 to-blue-500 rounded-2xl flex items-center justify-center font-black text-white text-xl shadow-lg shadow-teal-500/25">
-              O
+              F
             </div>
             <h1 className="text-3xl font-black text-white tracking-tight">
-              Ora<span className="text-teal-400">Dent</span>
+              FDC
             </h1>
           </div>
           <p className="text-slate-400 text-sm">Dental Clinic Management System</p>
@@ -132,7 +132,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="text-center text-slate-500 text-xs mt-8">
-          © {new Date().getFullYear()} OraDent Clinic. All rights reserved.
+          © {new Date().getFullYear()} FDC Clinic. All rights reserved.
         </p>
       </div>
     </div>

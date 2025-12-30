@@ -5,7 +5,7 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-    title: 'OraDent - Dental Clinic Management System',
+    title: 'FDC - Dental Clinic Management System',
     description: 'Comprehensive dental clinic management solution',
 };
 

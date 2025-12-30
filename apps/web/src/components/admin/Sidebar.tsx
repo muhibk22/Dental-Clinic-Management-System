@@ -154,7 +154,7 @@ export default function AdminSidebar() {
                     </div>
                     {!collapsed && (
                         <div>
-                            <h1 className="font-black text-white text-lg tracking-tight">OraDent</h1>
+                            <h1 className="font-black text-white text-lg tracking-tight">FDC</h1>
                             <p className="text-xs text-slate-400">{getRoleBadge()} Portal</p>
                         </div>
                     )}
